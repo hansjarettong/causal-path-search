@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from typing import List
+from itertools import combinations
 from scipy.special import digamma
 from lingam.base import _BaseLiNGAM
 from lingam.direct_lingam import DirectLiNGAM
@@ -9,9 +10,16 @@ from sklearn.neighbors import KDTree, NearestNeighbors
 
 
 class _BaseLiNGAM_MMI(_BaseLiNGAM):
-    def __init__(self, random_state=None, known_ordering=None):
+    def __init__(self, random_state=None, known_ordering: list = None):
         super().__init__(random_state)
-        self.known_ordering = known_ordering
+        # known ordering should be a list of 2-tuples
+        # if you pass a list, it will be converted to its pairwise combinations.
+        if not bool(known_ordering):
+            self.known_ordering = list()
+        elif isinstance(known_ordering[0], int):
+            self.known_ordering = list(combinations(known_ordering, 2))
+        else:
+            self.known_ordering = known_ordering
 
     def fit(self, X):
         if isinstance(X, pd.DataFrame):
@@ -88,7 +96,19 @@ class _BaseLiNGAM_MMI(_BaseLiNGAM):
         )
 
     def _get_successors(self, node: frozenset):
-        return {node - {i} for i in node}
+        successors = []
+        for i in node:
+            candidate_successor = node - {i}
+            # check if this candidate is valid
+            for earlier_var, later_var in self.known_ordering:
+                if (
+                    earlier_var in candidate_successor
+                    and later_var not in candidate_successor
+                ):
+                    break
+            else:
+                successors.append(candidate_successor)
+        return set(successors)
 
     def _get_mutual_info(
         self,
