@@ -28,7 +28,6 @@ class _BaseLiNGAM_ZDD:
         universe = [k + tuple([v]) for k, v in self.mi_dict.items()]
 
         GraphSet.set_universe(universe, traversal=self.traversal)
-        GraphSet.show_messages()
 
         root_node = self._get_root_node()
         self.num_features = len(self._nodestr2list(root_node))
